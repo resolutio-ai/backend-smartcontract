@@ -1,0 +1,33 @@
+{
+  "name": "resolutio-contract-graphapi",
+  "version": "1.0.0",
+  "description": "Backend Repository for Team Resolutio",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ogubuike Alexandra",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "hardhat": "^2.10.2"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "mocha": "^10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/resolutio-ai/backend-smartcontract.git"
+  },
+  "keywords": [
+    "smartcontract",
+    "resolutio.ai",
+    "NFT"
+  ],
+  "bugs": {
+    "url": "https://github.com/resolutio-ai/backend-smartcontract/issues"
+  },
+  "homepage": "https://github.com/resolutio-ai/backend-smartcontract#readme"
+}
