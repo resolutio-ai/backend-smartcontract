@@ -2,13 +2,15 @@
 
 pragma solidity ^0.8.9;
 
+//Address: 0xda1837115C39A92aB33fACC61a99Ffb2B4C79175
+
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-contract ArbiterNFT is ERC721("ResolutioArbiter", "Arbiter"),
+contract ArbiterWhitelister is ERC721("ResolutioArbiter", "Arbiter"),
     Ownable,
     ReentrancyGuard
 {
@@ -17,7 +19,7 @@ contract ArbiterNFT is ERC721("ResolutioArbiter", "Arbiter"),
 
     struct Arbiter {
         bool isActive;
-        uint256 mintCount;
+        uint8 mintCount;
     }
 
     event WhiteListed(address arbiter, uint timeStamp);
