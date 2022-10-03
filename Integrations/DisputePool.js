@@ -34,6 +34,7 @@ async function createDispute(uri) {
   return response;
 }
 
+//Get all selected arbiter addresses for a dispute
 async function getAddressesForDispute() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -41,6 +42,7 @@ async function getAddressesForDispute() {
   return response;
 }
 
+//Join a dispute pool
 async function joinDisputePool() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -50,6 +52,7 @@ async function joinDisputePool() {
   return response;
 }
 
+//Assign Random Arbiters
 async function assignRandomArbiters() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -59,6 +62,7 @@ async function assignRandomArbiters() {
   return response;
 }
 
+//Vote
 async function vote(proposal) {
   //Where 1 = validate and 2 = invalidate
   const contract = await createDisputeSystemContractInstance();
@@ -69,6 +73,7 @@ async function vote(proposal) {
   return response;
 }
 
+//End voting
 async function endVoting() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -78,6 +83,7 @@ async function endVoting() {
   return response;
 }
 
+//Get All Disputes
 async function getAllDisputes() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -85,6 +91,7 @@ async function getAllDisputes() {
   return response;
 }
 
+//get a dispute
 async function getADispute(disputeId) {
   const contract = await createDisputeSystemContractInstance();
 
@@ -92,6 +99,7 @@ async function getADispute(disputeId) {
   return response;
 }
 
+//Get all dispute created by userAddress
 async function getMyCreatedDisputes(userAddress) {
   const contract = await createDisputeSystemContractInstance();
 
@@ -107,6 +115,7 @@ async function getMyCreatedDisputes(userAddress) {
   return disputeArray;
 }
 
+//Get all disputes for an arbiter with userAddress
 async function getMyArbiterDisputes(userAddress) {
   const contract = await createDisputeSystemContractInstance();
 
@@ -121,6 +130,7 @@ async function getMyArbiterDisputes(userAddress) {
   return disputeArray;
 }
 
+//Get disputes that have just being newly created and Arbiter selection has not happened
 async function getNewDisputes() {
   const contract = await createDisputeSystemContractInstance();
 
@@ -136,6 +146,7 @@ async function getNewDisputes() {
   return disputeArray;
 }
 
+//Get all disputes that are ongoing
 async function getOngoingDisputes(disputeId) {
   const contract = await createDisputeSystemContractInstance();
 
@@ -155,6 +166,7 @@ async function getOngoingDisputes(disputeId) {
   return disputeArray;
 }
 
+//Get all disputes that have been resolved
 async function getResolvedDisputes(disputeId) {
   const contract = await createDisputeSystemContractInstance();
 

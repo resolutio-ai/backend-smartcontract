@@ -89,7 +89,7 @@ contract Disputepool {
         uint256 timeStatmp
     );
 
-    /// @dev links an arbiter to a DisputeToDecision (i.e a dispute and his decision for that dspute)
+    /// @dev links an arbiter to a DisputeToDecision (i.e a dispute and his decision for that dispute. The mapping is from the disputeId to the Decision)
     mapping(address => mapping(uint256 => DisputeToDecision))
         public arbiterToDisputes;
 
@@ -135,24 +135,26 @@ contract Disputepool {
         payable
         isArbiter(msg.sender)
     {
+        //Confirm Stake
         require(msg.value == stake, "Invalid stake");
+        //Get a dispute
         Dispute memory _dispute = itemIdToDispute[id];
 
         require(_dispute.state == State.IsCreated, "Invalid State");
 
-        //If its been more than 3 days after dispute creation change state to canvote
+        //If its been more than 3 days after dispute creation change state to can vote
         if (_dispute.createdAt + 3 days > block.timestamp) {
             _dispute.state = State.ArbiterSelection;
             itemIdToDispute[id] = _dispute;
-            revert();
+            revert("Invalid State");
         }
 
-        //get the disputesTodecision for the caller
+        //initialize disputesTodecision for the caller, It does not exist at this point 
         DisputeToDecision memory _arbiterToDisputes = arbiterToDisputes[
             msg.sender
         ][id];
 
-        //Use length to assign new dispute application to caller
+        //Set the dispute Id and confirm that arbiter has staked
         _arbiterToDisputes.disputeId = id;
         _arbiterToDisputes.hasStaked = true;
 
@@ -173,9 +175,11 @@ contract Disputepool {
     function assignRandomArbiters(uint256 id) external {
         Dispute memory _dispute = itemIdToDispute[id];
 
+        // //Extract
         if (_dispute.createdAt + 3 days > block.timestamp) {
             _dispute.state = State.ArbiterSelection;
-            // itemIdToDispute[disputeId] = _dispute;
+            itemIdToDispute[id] = _dispute;
+            revert();
         }
 
         require(_dispute.state == State.ArbiterSelection, "Invalid state");
@@ -184,11 +188,10 @@ contract Disputepool {
         _random.requestRandomWords();
         uint256[] memory randomvalues = _random.s_randomWords();
 
-        for (uint256 i = 0; i < randomvalues.length; i++) {
-            //Change the DisputeToDecsion to srefletc is selected!! Also check that the address has staked
+        for (uint256 i = 0; i < randomvalues.length; i++) {           
             //get a random index
             uint256 randomIndex = randomvalues[i];
-            //use the random index to get an address
+            //use the random index to get an address-- Addresses must correspond to random index to avoid error
             address selected = addresses[randomIndex];
             //Add that address to the list of selected arbiters
             _dispute.selectedArbiters[i] = selected;
@@ -206,13 +209,15 @@ contract Disputepool {
      * @param disputeId The id for the dispute
      */
     function vote(Decision decision, uint256 disputeId) external {
-        require(decision != Decision.Null, "Invalid decison input");
-
+        //Initialize a dispute to deciaion for arbiter
         DisputeToDecision memory _disputeToDecision = arbiterToDisputes[
             msg.sender
         ][disputeId];
 
+        //Require that arbiter has been selected for 
         require(_disputeToDecision.isSelected, "Unauthorized!");
+        require(decision != Decision.Null, "Invalid input");
+
         Dispute memory _dispute = itemIdToDispute[disputeId];
 
         require(_dispute.state == State.CanVote, "Invalid State");
@@ -220,9 +225,15 @@ contract Disputepool {
         _disputeToDecision.decision = decision;
         arbiterToDisputes[msg.sender][disputeId] = _disputeToDecision;
 
+        //Bot should be able to listen that all vot has been cast and change the state
         emit Voted(decision, disputeId, msg.sender);
     }
 
+    
+    /**
+     * @dev End voting process and refund arbiters that voted the winning proposal
+     * @param disputeId The id for the dispute
+     */
     function endVoting(uint256 disputeId) external {
         Dispute memory _dispute = itemIdToDispute[disputeId];
 
@@ -279,14 +290,14 @@ contract Disputepool {
     }
 
     /// @dev Gets the selected addresses for a dispute
-    /// @param id The disputeId for the dispute
+    /// @param disputeId The disputeId for the dispute
     /// @return an array of addresses belonging to selected arbiters
-    function getAddressesForDispute(uint256 id)
+    function getAddressesForDispute(uint256 disputeId)
         external
         view
         returns (address[] memory)
     {
-        return itemIdToDispute[id].selectedArbiters;
+        return itemIdToDispute[disputeId].selectedArbiters;
     }
 
     /// @dev Gets all dispute ever created in the smart contract
@@ -305,6 +316,9 @@ contract Disputepool {
         return items;
     }
 
+    /// @dev Gets A dispute
+    /// @param disputeId The disputeId for the dispute
+    /// @return an array of disputes
     function getDispute(uint256 disputeId)
         external
         view
