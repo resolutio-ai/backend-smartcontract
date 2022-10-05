@@ -1,7 +1,6 @@
 # Official Resolutio Smartcontract Project
 
 ## Relevant Contrcat Addresses:
-<br />
 ArbiterWhiteLister Contract Address 
 0xEE1A1940B63C95af84E6CCeC764B341f75331ED0
 <br />
