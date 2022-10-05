@@ -3,9 +3,9 @@
 ## Relevant Contrcat Addresses:
 ArbiterWhiteLister Contract Address 
 - 0xEE1A1940B63C95af84E6CCeC764B341f75331ED0
-ChainLink Random Number Generator
+<br /> ChainLink Random Number Generator
 - 0x15C89FAa1b28BA3D667F05aA871484254e01C9EE
-DisputeInitiation Contract Address
+<br /> DisputeInitiation Contract Address
 - 0xd83310cF8002eD0092d48Daf41f77d52aBFc2B61
 
 ## NOTE
