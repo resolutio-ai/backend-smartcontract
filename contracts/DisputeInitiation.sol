@@ -15,7 +15,7 @@ contract Disputepool {
     uint256 private resolvedItemsIds;
 
     uint8 public allowedArbiters = 3;
-    uint256 public stake = 60 ether;
+    uint256 public stake = 0.02 ether;
 
     IRandomizer _random;
     ArbiterWhitelister _arbiterWhitelist;
