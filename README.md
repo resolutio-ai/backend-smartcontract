@@ -3,10 +3,8 @@
 ## Relevant Contrcat Addresses:
 <br />
 ArbiterWhiteLister Contract Address 
-This amount has to be staked when
-- Creating a dispute as a user
-- Joining a dispute as an arbiter
-- 0xEE1A1940B63C95af84E6CCeC764B341f75331ED0
+0xEE1A1940B63C95af84E6CCeC764B341f75331ED0
+<br />
 ChainLink Random Number Generator
 - 0x15C89FAa1b28BA3D667F05aA871484254e01C9EE
 DisputeInitiation Contract Address
