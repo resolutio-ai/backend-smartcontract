@@ -96,6 +96,7 @@ contract Disputepool {
     //// @dev links the ItemId (disputeId) to a dispute
     mapping(uint256 => Dispute) public itemIdToDispute;
 
+//0x15C89FAa1b28BA3D667F05aA871484254e01C9EE - Randomizer
     constructor(address randomizer, address arbiterWhitelist) {
         _random = IRandomizer(randomizer);
         _arbiterWhitelist = ArbiterWhitelister(arbiterWhitelist);
@@ -330,6 +331,6 @@ contract Disputepool {
 
 interface IRandomizer {
     function s_randomWords() external returns (uint256[] calldata);
-
-    function requestRandomWords() external;
+    function requestRandomWords() external returns (uint256 requestId); 
+    function getRequestStatus(uint256 _requestId) external view returns (bool fulfilled, uint256[] memory randomWords);   
 }
