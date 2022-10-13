@@ -10,6 +10,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@chainlink/contracts": "^0.4.1",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
     "@openzeppelin/contracts": "^4.7.3",
     "hardhat": "^2.10.2"
   },
