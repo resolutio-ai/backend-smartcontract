@@ -42,7 +42,7 @@ contract Disputepool is Ownable {
         uint256 disputeId;
     }
 
-    enum Proposal{
+    enum Proposal {
         Validate,
         Invalidate
     }
@@ -112,7 +112,7 @@ contract Disputepool is Ownable {
 
         // //require we are not creating the token twice!
         _itemIds += 1;
-        
+
         Dispute storage _dispute = itemIdToDispute[_itemIds];
         _dispute.state = State.IsCreated;
         _dispute.creator = msg.sender;
@@ -229,63 +229,63 @@ contract Disputepool is Ownable {
      * @dev End voting process and refund arbiters that voted the winning proposal
      * @param disputeId The id for the dispute
      */
-    function endVoting(uint256 disputeId) external {
+    function endVoting(uint256 disputeId) external onlyOwner {
         //Confirm dipute State
         Dispute storage _dispute = itemIdToDispute[disputeId];
         require(_dispute.state == State.ComputeResult, "Invalid State");
 
+        //Get the selected arbiters form the dispute
         DisputeToDecision[] memory _disputeToDecision = itemIdToDispute[
             disputeId
         ].selectedArbiters;
 
+        //Set variables for calculating valodations/Invalidations
         uint8 validated = 0;
         uint8 invalidated = 0;
-        address[] memory validatedArbiters;
-        address[] memory invalidatedArbiters;
 
         //Confirm that everyone has voted
         for (uint256 i = 0; i < _disputeToDecision.length; i++) {
-            if (!_disputeToDecision[i].hasVoted || _disputeToDecision[i].decision == Decision.Null) {
+            if (
+                !_disputeToDecision[i].hasVoted ||
+                _disputeToDecision[i].decision == Decision.Null
+            ) {
                 revert("Vote must be complete!");
             }
 
+            //Calculate the number of validations versus invalidations
             if (_disputeToDecision[i].decision == Decision.Validate) {
-                validatedArbiters[validated] = _disputeToDecision[i].arbiter;
-                validated += 1;
-            } 
-            else {
-                invalidatedArbiters[invalidated] = _disputeToDecision[i].arbiter;
-                invalidated += 1;
+                validated++;
+            } else if (_disputeToDecision[i].decision == Decision.Invalidate) {
+                invalidated;
             }
         }
 
         //Arbiter number must always be an odd number so we cannot have a tie
         if (validated > invalidated) {
             _dispute.winningProposal = Proposal.Validate;
-        } 
-        else {
+        } else {
             _dispute.winningProposal = Proposal.Invalidate;
         }
 
         _dispute.state = State.End;
         itemIdToDispute[disputeId] = _dispute;
 
-        if (_dispute.winningProposal == Proposal.Validate) {
-            for (uint256 i = 0; i < validatedArbiters.length; i++) {
-                (bool success, ) = validatedArbiters[i].call{value: stake}("");
+        for (uint256 i = 0; i < _disputeToDecision.length; i++) {
+            if (_dispute.winningProposal == Proposal.Validate) {
+                (bool success, ) = _disputeToDecision[i].arbiter.call{
+                    value: stake
+                }("");
                 require(success, "Refund Error!");
-            }
-        } else if (_dispute.winningProposal == Proposal.Invalidate) {
-            for (uint256 i = 0; i < invalidatedArbiters.length; i++) {
-                (bool success, ) = invalidatedArbiters[i].call{value: stake}(
-                    ""
-                );
-                require(success, "Refund Error!");                
+            } else if (_dispute.winningProposal == Proposal.Invalidate) {
+                (bool success, ) = _disputeToDecision[i].arbiter.call{
+                    value: stake
+                }("");
+                require(success, "Refund Error!");
             }
         }
     }
 
-     /// @dev Gets the selected addresses for a dispute
+    /// @dev Gets the selected addresses for a dispute
     /// @param disputeId The disputeId for the dispute
     /// @return an array of addresses belonging to selected arbiters
     function getAddressesForDispute(uint256 disputeId)
@@ -326,5 +326,4 @@ contract Disputepool is Ownable {
     function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
-
 }
