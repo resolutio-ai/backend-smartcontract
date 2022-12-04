@@ -125,9 +125,18 @@ contract Disputepool is Ownable {
     }
 
     function changeDisputeState(uint256 id, uint256 move) external onlyOwner {
-        require(move == 1 || move == 2, "Invalid move");
+        require(move == 1 || move == 2, "Invalid move");       
 
         Dispute storage _dispute = itemIdToDispute[id];
+
+        if(_dispute.state == State.End && move == 1){
+            return;
+        }
+
+        if(_dispute.state == State.UnInitialized && move == 2){
+            return;
+        }
+
         if (move == 1) {
             _dispute.state = State((uint256(_dispute.state)) + 1);
         } else {
@@ -150,6 +159,16 @@ contract Disputepool is Ownable {
         Dispute memory _dispute = itemIdToDispute[id];
 
         require(_dispute.state == State.IsCreated, "Invalid State");
+
+        if (_dispute.creator == msg.sender){
+            revert("Sender is Dispute Owner");
+        }
+
+        for(uint i = 0; i < _dispute.disputePool.length; i++){
+            if(_dispute.disputePool[i] == msg.sender){
+                revert("Already Joined");
+            }
+        }
 
         //Add caller to the dispute pool of this dispute
         itemIdToDispute[id].disputePool.push(msg.sender);
@@ -325,5 +344,17 @@ contract Disputepool is Ownable {
 
     function getBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+
+    /// @dev Validates that A dispute has been created and has been resolved 
+    /// @param disputeId The disputeId for the dispute
+    /// @return a boolean    
+    function isValidDispute(uint disputeId) external view returns (bool) {
+        Dispute memory _dispute = itemIdToDispute[disputeId];
+        if (_dispute.creator == address(0) || _dispute.state != State.End) {
+            return false;
+        } 
+
+        return true;
     }
 }

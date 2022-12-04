@@ -6,7 +6,9 @@
 #### ChainLink Random Number Generator
 - 0x15C89FAa1b28BA3D667F05aA871484254e01C9EE
 #### DisputeInitiation Contract Address
-- 0x9f782204da991DAb19e0C4E7754CDf3AC381Da3f
+- 0x026716248a42297055a703E515daA0c60AA71872
+#### Decision NFT Contract Address
+- 0x003D7429245c4D9E7B678356c26286F71C5b6A7d
 
 ## NOTE
 For test purposes, the stake amount for any process within the contract is 0.02 Link (or 20000000000000000 wei)
