@@ -18,5 +18,5 @@ This amount has to be staked when
 
 //Todo
 - When dispute contract is initialized, create a default dispute with value 0 as disputeid 
-- Send appropiate error message when user rejects a transaction from metamask
-- Add check so that an arbiter cannot join a dispute that he created
+- (FE): Send appropiate error message when user rejects a transaction from metamask
+- Add check so that an arbiter cannot join a dispute that he created✅
