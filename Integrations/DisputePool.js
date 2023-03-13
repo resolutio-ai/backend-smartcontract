@@ -29,7 +29,7 @@ export class DisputePool {
 
     //contract initialization: create and return an instance of the contract
     return new ethers.Contract(
-      _disputeSystemAddress,
+      this._disputeSystemAddress,
       DisputeSystem.abi,
       signer
     );
@@ -133,9 +133,13 @@ export class DisputePool {
     let disputeArray = [];
 
     for (let dispute of allDisputes) {
-      if (dispute.selectedArbiters.includes(userAddress)) {
+      //Iterate
+      dispute.selectedArbiters.forEach(x =>{
+        if ( x.arbiter.toString() == userAddress.toString()) {
         disputeArray.push(dispute);
       }
+      })
+      
     }
     return disputeArray;
   }
@@ -215,7 +219,7 @@ export class DisputePool {
   }
 
   //Change the state of a dispute
-  //For the move argument ,Pass Either 1 or 2 to this function
+  //For the move argument, Pass Either 1 or 2 to this function
   //1 means move forward and 2 move back ward
   async changeDisputeState(disputeId, move) {
     const contract = await this._createDisputeSystemContractInstance();
