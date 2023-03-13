@@ -7,7 +7,6 @@ pragma solidity ^0.8.9;
 
 import "./ArbiterSelection.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
 
 contract Disputepool is Ownable {
     uint256 private _itemIds;
@@ -125,15 +124,15 @@ contract Disputepool is Ownable {
     }
 
     function changeDisputeState(uint256 id, uint256 move) external onlyOwner {
-        require(move == 1 || move == 2, "Invalid move");       
+        require(move == 1 || move == 2, "Invalid move");
 
         Dispute storage _dispute = itemIdToDispute[id];
 
-        if(_dispute.state == State.End && move == 1){
+        if (_dispute.state == State.End && move == 1) {
             return;
         }
 
-        if(_dispute.state == State.UnInitialized && move == 2){
+        if (_dispute.state == State.UnInitialized && move == 2) {
             return;
         }
 
@@ -160,12 +159,12 @@ contract Disputepool is Ownable {
 
         require(_dispute.state == State.IsCreated, "Invalid State");
 
-        if (_dispute.creator == msg.sender){
+        if (_dispute.creator == msg.sender) {
             revert("Sender is Dispute Owner");
         }
 
-        for(uint i = 0; i < _dispute.disputePool.length; i++){
-            if(_dispute.disputePool[i] == msg.sender){
+        for (uint256 i = 0; i < _dispute.disputePool.length; i++) {
+            if (_dispute.disputePool[i] == msg.sender) {
                 revert("Already Joined");
             }
         }
@@ -346,14 +345,22 @@ contract Disputepool is Ownable {
         return address(this).balance;
     }
 
-    /// @dev Validates that A dispute has been created and has been resolved 
+    function withdrawBalance() external onlyOwner {
+        (bool success, ) = payable(owner()).call{value: address(this).balance}(
+            ""
+        );
+
+        require(success, "Refund Error!");
+    }
+
+    /// @dev Validates that A dispute has been created and has been resolved
     /// @param disputeId The disputeId for the dispute
-    /// @return a boolean    
-    function isValidDispute(uint disputeId) external view returns (bool) {
+    /// @return a boolean
+    function isValidDispute(uint256 disputeId) external view returns (bool) {
         Dispute memory _dispute = itemIdToDispute[disputeId];
         if (_dispute.creator == address(0) || _dispute.state != State.End) {
             return false;
-        } 
+        }
 
         return true;
     }
