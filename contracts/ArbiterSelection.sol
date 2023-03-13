@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "hardhat/console.sol";
+
 
 contract ArbiterWhitelister is ERC721("ResolutioArbiter", "Arbiter"),
     Ownable,
@@ -80,3 +80,5 @@ contract ArbiterWhitelister is ERC721("ResolutioArbiter", "Arbiter"),
     ) internal override {}   
     
 }
+
+
