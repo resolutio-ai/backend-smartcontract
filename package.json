@@ -10,13 +10,16 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@chainlink/contracts": "^0.4.1",
-    "@openzeppelin/contracts": "^4.7.3",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@openzeppelin/contracts": "^4.8.1",
+    "dotenv": "^16.0.3",
     "hardhat": "^2.10.2"
   },
   "directories": {
     "test": "test"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-etherscan": "^3.1.5",
     "mocha": "^10.0.0"
   },
   "repository": {

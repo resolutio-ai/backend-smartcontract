@@ -6,18 +6,15 @@ pragma solidity ^0.8.9;
 /// @notice Handles Functionalities involved in Resolutio's Dispute Resolution
 
 import "./ArbiterSelection.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Disputepool {
+contract Disputepool is Ownable {
     uint256 private _itemIds;
     uint256 private resolvedItemsIds;
 
     uint8 public allowedArbiters = 3;
     uint256 public stake = 0.02 ether;
 
-    IRandomizer _random;
     ArbiterWhitelister _arbiterWhitelist;
 
     /// @dev A structure to hold the state of a given dispute.
@@ -27,21 +24,26 @@ contract Disputepool {
     /// @param HasSelectedArbiters A boolean to tell if arbiters have been selected for dispute
     struct Dispute {
         uint8 arbiterCount;
-        uint8 winningProposal;
+        Proposal winningProposal;
         State state;
         address creator;
         uint256 createdAt;
         uint256 disputeId;
         string uri;
-        address[] selectedArbiters;
+        DisputeToDecision[] selectedArbiters;
         address[] disputePool;
     }
 
     struct DisputeToDecision {
         Decision decision;
-        bool isSelected;
-        bool hasStaked;
+        bool hasVoted;
+        address arbiter;
         uint256 disputeId;
+    }
+
+    enum Proposal {
+        Validate,
+        Invalidate
     }
 
     enum State {
@@ -73,19 +75,19 @@ contract Disputepool {
         uint256 timestamp
     );
     event DisputePoolJoined(
-        uint256 disputeId,
+        uint256 indexed disputeId,
         address indexed arbiter,
         uint256 timestamp
     );
     event Voted(
-        Decision indexed decision,
+        Decision decision,
         uint256 indexed disputeId,
         address indexed arbiter
     );
 
     event AssignedArbiters(
         uint256 disputeId,
-        address[] selectedArbiters,
+        DisputeToDecision[] selectedArbiters,
         uint256 timeStatmp
     );
 
@@ -96,9 +98,8 @@ contract Disputepool {
     //// @dev links the ItemId (disputeId) to a dispute
     mapping(uint256 => Dispute) public itemIdToDispute;
 
-//0x15C89FAa1b28BA3D667F05aA871484254e01C9EE - Randomizer
-    constructor(address randomizer, address arbiterWhitelist) {
-        _random = IRandomizer(randomizer);
+    //0x15C89FAa1b28BA3D667F05aA871484254e01C9EE - Randomizer
+    constructor(address arbiterWhitelist) {
         _arbiterWhitelist = ArbiterWhitelister(arbiterWhitelist);
     }
 
@@ -107,26 +108,41 @@ contract Disputepool {
     /// @param uri The URI that holds the metadata of the dispute being created
     function createDispute(string memory uri) external payable {
         require(msg.value == stake, "Invalid stake");
-        //require we are not creating the token twice!
-        uint256 count = _itemIds;
-        count += 1;
 
-        address[] memory _arbiters;
+        // //require we are not creating the token twice!
+        _itemIds += 1;
 
-        itemIdToDispute[count] = Dispute({
-            state: State.IsCreated,
-            creator: msg.sender,
-            arbiterCount: allowedArbiters,
-            winningProposal: 0,
-            createdAt: block.timestamp,
-            disputeId: count,
-            uri: uri,
-            selectedArbiters: _arbiters,
-            disputePool: _arbiters
-        });
+        Dispute storage _dispute = itemIdToDispute[_itemIds];
+        _dispute.state = State.IsCreated;
+        _dispute.creator = msg.sender;
+        _dispute.arbiterCount = allowedArbiters;
+        _dispute.uri = uri;
+        _dispute.disputeId = _itemIds;
+        _dispute.createdAt = block.timestamp;
 
-        _itemIds = count;
-        emit DisputeCreated(count, msg.sender, block.timestamp);
+        emit DisputeCreated(_itemIds, msg.sender, block.timestamp);
+    }
+
+    function changeDisputeState(uint256 id, uint256 move) external onlyOwner {
+        require(move == 1 || move == 2, "Invalid move");
+
+        Dispute storage _dispute = itemIdToDispute[id];
+
+        if (_dispute.state == State.End && move == 1) {
+            return;
+        }
+
+        if (_dispute.state == State.UnInitialized && move == 2) {
+            return;
+        }
+
+        if (move == 1) {
+            _dispute.state = State((uint256(_dispute.state)) + 1);
+        } else {
+            _dispute.state = State((uint256(_dispute.state)) - 1);
+        }
+
+        itemIdToDispute[id] = _dispute;
     }
 
     /// @dev Adds an arbiter to a dispute pool
@@ -143,63 +159,53 @@ contract Disputepool {
 
         require(_dispute.state == State.IsCreated, "Invalid State");
 
-        //If its been more than 3 days after dispute creation change state to can vote
-        if (_dispute.createdAt + 3 days > block.timestamp) {
-            _dispute.state = State.ArbiterSelection;
-            itemIdToDispute[id] = _dispute;
-            revert("Invalid State");
+        if (_dispute.creator == msg.sender) {
+            revert("Sender is Dispute Owner");
         }
 
-        //initialize disputesTodecision for the caller, It does not exist at this point 
-        DisputeToDecision memory _arbiterToDisputes = arbiterToDisputes[
-            msg.sender
-        ][id];
-
-        //Set the dispute Id and confirm that arbiter has staked
-        _arbiterToDisputes.disputeId = id;
-        _arbiterToDisputes.hasStaked = true;
-
-        //get the number of addresses in the dispute pool of the dispute
-        uint256 poolLength = _dispute.disputePool.length;
+        for (uint256 i = 0; i < _dispute.disputePool.length; i++) {
+            if (_dispute.disputePool[i] == msg.sender) {
+                revert("Already Joined");
+            }
+        }
 
         //Add caller to the dispute pool of this dispute
-        itemIdToDispute[id].disputePool[poolLength] = msg.sender;
-
-        //Add dispute to the list of disputes for this arbiter
-        arbiterToDisputes[msg.sender][id] = _arbiterToDisputes;
+        itemIdToDispute[id].disputePool.push(msg.sender);
 
         emit DisputePoolJoined(id, msg.sender, block.timestamp);
     }
 
     /// @dev assigns arbiters that corresponds to the index being passed as parameters
     /// @param id The disputeId for the dispute
-    function assignRandomArbiters(uint256 id) external {
-        Dispute memory _dispute = itemIdToDispute[id];
-
-        // //Extract
-        if (_dispute.createdAt + 3 days > block.timestamp) {
-            _dispute.state = State.ArbiterSelection;
-            itemIdToDispute[id] = _dispute;
-            revert();
-        }
+    function assignRandomArbiters(uint256 id, uint256[] calldata randomvalues)
+        external
+        onlyOwner
+    {
+        Dispute storage _dispute = itemIdToDispute[id];
 
         require(_dispute.state == State.ArbiterSelection, "Invalid state");
         address[] memory addresses = _dispute.disputePool;
 
-        _random.requestRandomWords();
-        uint256[] memory randomvalues = _random.s_randomWords();
-
-        for (uint256 i = 0; i < randomvalues.length; i++) {           
+        for (uint256 i = 0; i < randomvalues.length; i++) {
             //get a random index
             uint256 randomIndex = randomvalues[i];
-            //use the random index to get an address-- Addresses must correspond to random index to avoid error
-            address selected = addresses[randomIndex];
+
+            if (randomIndex > addresses.length - 1 || randomIndex < 0) {
+                revert("invalid index sent");
+            }
+
+            DisputeToDecision memory selected = DisputeToDecision({
+                decision: Decision.Null,
+                arbiter: addresses[randomIndex],
+                disputeId: id,
+                hasVoted: false
+            });
+
             //Add that address to the list of selected arbiters
-            _dispute.selectedArbiters[i] = selected;
+            _dispute.selectedArbiters.push(selected);
         }
 
         _dispute.state = State.CanVote;
-        itemIdToDispute[id] = _dispute;
 
         emit AssignedArbiters(id, _dispute.selectedArbiters, block.timestamp);
     }
@@ -209,82 +215,89 @@ contract Disputepool {
      * @param decision index of proposal in the proposals array
      * @param disputeId The id for the dispute
      */
-    function vote(Decision decision, uint256 disputeId) external {
-        //Initialize a dispute to deciaion for arbiter
-        DisputeToDecision memory _disputeToDecision = arbiterToDisputes[
-            msg.sender
-        ][disputeId];
-
-        //Require that arbiter has been selected for 
-        require(_disputeToDecision.isSelected, "Unauthorized!");
-        require(decision != Decision.Null, "Invalid input");
-
-        Dispute memory _dispute = itemIdToDispute[disputeId];
+    function vote(Decision decision, uint256 disputeId)
+        external
+        isArbiter(msg.sender)
+    {
+        //Get a dispute and its selected arbiters
+        Dispute storage _dispute = itemIdToDispute[disputeId];
+        DisputeToDecision[] storage _disputeToDecision = itemIdToDispute[
+            disputeId
+        ].selectedArbiters;
 
         require(_dispute.state == State.CanVote, "Invalid State");
+        require(decision != Decision.Null, "Invalid input");
 
-        _disputeToDecision.decision = decision;
-        arbiterToDisputes[msg.sender][disputeId] = _disputeToDecision;
+        //Check for the sender in the dispute selected arbiters and if she is found change the decision for that person
+        for (uint256 i = 0; i < _disputeToDecision.length; i++) {
+            if (_disputeToDecision[i].arbiter == msg.sender) {
+                require(!_disputeToDecision[i].hasVoted, "Already Voted");
+                _disputeToDecision[i].decision = decision;
+                _disputeToDecision[i].hasVoted = true;
+                emit Voted(decision, disputeId, msg.sender);
+                return;
+            }
+            continue;
+        }
 
-        //Bot should be able to listen that all vot has been cast and change the state
-        emit Voted(decision, disputeId, msg.sender);
+        revert("Unauthorized Voter!");
     }
 
-    
     /**
      * @dev End voting process and refund arbiters that voted the winning proposal
      * @param disputeId The id for the dispute
      */
-    function endVoting(uint256 disputeId) external {
-        Dispute memory _dispute = itemIdToDispute[disputeId];
-
+    function endVoting(uint256 disputeId) external onlyOwner {
+        //Confirm dipute State
+        Dispute storage _dispute = itemIdToDispute[disputeId];
         require(_dispute.state == State.ComputeResult, "Invalid State");
 
-        address[] memory _selectedArbiters = _dispute.selectedArbiters;
+        //Get the selected arbiters form the dispute
+        DisputeToDecision[] memory _disputeToDecision = itemIdToDispute[
+            disputeId
+        ].selectedArbiters;
+
+        //Set variables for calculating valodations/Invalidations
         uint8 validated = 0;
         uint8 invalidated = 0;
-        address[] memory validatedArbiters;
-        address[] memory invalidatedArbiters;
 
-        for (uint256 i = 0; i < _selectedArbiters.length; i++) {
-            //get the list of selctedArbietrs and require that each of them have made a decision
-            //then change state for the dispute
-            address arbiterAddress = _selectedArbiters[i];
-            DisputeToDecision memory _disputeToDecision = arbiterToDisputes[
-                arbiterAddress
-            ][disputeId];
+        //Confirm that everyone has voted
+        for (uint256 i = 0; i < _disputeToDecision.length; i++) {
+            if (
+                !_disputeToDecision[i].hasVoted ||
+                _disputeToDecision[i].decision == Decision.Null
+            ) {
+                revert("Vote must be complete!");
+            }
 
-            if (_disputeToDecision.decision == Decision.Null) {
-                revert("decision not made");
-            } else if (_disputeToDecision.decision == Decision.Validate) {
-                validatedArbiters[validated] = arbiterAddress;
-                validated += 1;
-            } else if (_disputeToDecision.decision == Decision.Invalidate) {
-                invalidatedArbiters[invalidated] = arbiterAddress;
-                invalidated += 1;
+            //Calculate the number of validations versus invalidations
+            if (_disputeToDecision[i].decision == Decision.Validate) {
+                validated++;
+            } else if (_disputeToDecision[i].decision == Decision.Invalidate) {
+                invalidated;
             }
         }
 
         //Arbiter number must always be an odd number so we cannot have a tie
         if (validated > invalidated) {
-            _dispute.winningProposal = validated;
+            _dispute.winningProposal = Proposal.Validate;
         } else {
-            _dispute.winningProposal = invalidated;
+            _dispute.winningProposal = Proposal.Invalidate;
         }
 
         _dispute.state = State.End;
         itemIdToDispute[disputeId] = _dispute;
 
-        if (_dispute.winningProposal == validated) {
-            for (uint256 i = 0; i < validatedArbiters.length; i++) {
-                (bool success, ) = validatedArbiters[i].call{value: stake}("");
+        for (uint256 i = 0; i < _disputeToDecision.length; i++) {
+            if (_dispute.winningProposal == Proposal.Validate) {
+                (bool success, ) = _disputeToDecision[i].arbiter.call{
+                    value: stake
+                }("");
                 require(success, "Refund Error!");
-            }
-        } else if (_dispute.winningProposal == invalidated) {
-            for (uint256 i = 0; i < invalidatedArbiters.length; i++) {
-                (bool success, ) = invalidatedArbiters[i].call{value: stake}(
-                    ""
-                );
+            } else if (_dispute.winningProposal == Proposal.Invalidate) {
+                (bool success, ) = _disputeToDecision[i].arbiter.call{
+                    value: stake
+                }("");
                 require(success, "Refund Error!");
             }
         }
@@ -296,14 +309,14 @@ contract Disputepool {
     function getAddressesForDispute(uint256 disputeId)
         external
         view
-        returns (address[] memory)
+        returns (DisputeToDecision[] memory)
     {
         return itemIdToDispute[disputeId].selectedArbiters;
     }
 
     /// @dev Gets all dispute ever created in the smart contract
     /// @return an array of disputes
-    function getAllDisputes() public view returns (Dispute[] memory) {
+    function getAllDisputes() external view returns (Dispute[] memory) {
         uint256 itemCount = _itemIds;
         uint256 currentIndex = 0;
 
@@ -327,10 +340,28 @@ contract Disputepool {
     {
         return itemIdToDispute[disputeId];
     }
-}
 
-interface IRandomizer {
-    function s_randomWords() external returns (uint256[] calldata);
-    function requestRandomWords() external returns (uint256 requestId); 
-    function getRequestStatus(uint256 _requestId) external view returns (bool fulfilled, uint256[] memory randomWords);   
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function withdrawBalance() external onlyOwner {
+        (bool success, ) = payable(owner()).call{value: address(this).balance}(
+            ""
+        );
+
+        require(success, "Refund Error!");
+    }
+
+    /// @dev Validates that A dispute has been created and has been resolved
+    /// @param disputeId The disputeId for the dispute
+    /// @return a boolean
+    function isValidDispute(uint256 disputeId) external view returns (bool) {
+        Dispute memory _dispute = itemIdToDispute[disputeId];
+        if (_dispute.creator == address(0) || _dispute.state != State.End) {
+            return false;
+        }
+
+        return true;
+    }
 }

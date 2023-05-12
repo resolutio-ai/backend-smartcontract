@@ -1,10 +1,14 @@
-import { ethers } from "ethers";
-import DisputeSystem from "../Integrations/ABIs/DisputePool.json";
-import Randomizer from "../Integrations/ABIs/Randomizer.json";
+const { ethers }  = require("ethers");
+// import {
+//   CHAINLINK_RANDOM_GENERATOR_CONTRACT_ADDR,
+//   DISPUTE_INITIATION_CONTRACT_ADDR,
+// } from "../config";
+const DisputeSystem = require("../Integrations/ABIs/DisputePool.json");
+const Randomizer  = require("../Integrations/ABIs/Randomizer.json");
 
-export class DisputePool {
-  _disputeSystemAddress = "";
-  _randomizerAddress = "0x15C89FAa1b28BA3D667F05aA871484254e01C9EE";
+class DisputePool {
+  _disputeSystemAddress = "0x9f782204da991dab19e0c4e7754cdf3ac381da3f";
+  _randomizerAddress = "CHAINLINK_RANDOM_GENERATOR_CONTRACT_ADDR";
   stake = "0.02";
   _UnInitialized = 0;
   _IsCreated = 1;
@@ -16,22 +20,28 @@ export class DisputePool {
   _backward = 2;
 
   async _createDisputeSystemContractInstance() {
-    const { ethereum } = window;
+    // const { ethereum } = window;
 
-    //if none is found, it means that a user does not
-    if (!ethereum) {
-      return;
-    }
+    // //if none is found, it means that a user does not
+    // if (!ethereum) {
+    //   return;
+    // }
+
+    let wallet = new ethers.Wallet(
+      "1a4823d90bc72d354903a8b4ec71ec9c953393fcc87455e7b6145e3aefb9fdc2"
+    );
 
     //Get wallet provider and signer
-    const provider = new ethers.providers.Web3Provider(ethereum);
-    const signer = provider.getSigner();
+    const provider = new ethers.providers.JsonRpcProvider(
+      `process.env.RPC_PROVIDER`
+    );
+    //const signer = provider.getSigner();
 
-    //contract initialization: create and return an instance of the contract
+    //contract initialization: create and return an instance of the contract that only allows READ ONLY OPERATIONS
     return new ethers.Contract(
       this._disputeSystemAddress,
-      DisputeSystem.abi,
-      signer
+      DisputeSystem,
+      provider
     );
   }
 
@@ -51,7 +61,7 @@ export class DisputePool {
     return new ethers.Contract(_randomizerAddress, Randomizer.abi, signer);
   }
 
-  _getStake = async () => ethers.utils.parseUnits(price, "ether");
+  _getStake = async () => ethers.utils.parseUnits(this.stake, "ether");
 
   //Create a dispute
   async createDispute(uri) {
@@ -74,8 +84,16 @@ export class DisputePool {
 
   //Join a dispute pool
   async joinDisputePool(disputeId) {
-    let price = this._getStake();
+    let price = await this._getStake();
+    console.log(
+      "🚀 ~ file: DisputePool.js ~ line 82 ~ DisputePool ~ joinDisputePool ~ price",
+      price
+    );
     const contract = await this._createDisputeSystemContractInstance();
+    console.log(
+      "🚀 ~ file: DisputePool.js ~ line 87 ~ DisputePool ~ joinDisputePool ~ contract",
+      contract
+    );
 
     let txn = await contract.joinDisputePool(disputeId, { value: price });
     let response = await txn.wait();
@@ -97,13 +115,13 @@ export class DisputePool {
   //Get All Disputes
   async getAllDisputes() {
     const contract = await this._createDisputeSystemContractInstance();
-
+    console.log("stuff")
     let response = await contract.getAllDisputes();
     return response;
   }
 
   //get a dispute
-  async getADispute(disputeId) {
+  async getDisputeById(disputeId) {
     const contract = await this._createDisputeSystemContractInstance();
 
     let response = await contract.getDispute(disputeId);
@@ -133,13 +151,9 @@ export class DisputePool {
     let disputeArray = [];
 
     for (let dispute of allDisputes) {
-      //Iterate
-      dispute.selectedArbiters.forEach(x =>{
-        if ( x.arbiter.toString() == userAddress.toString()) {
+      if (dispute.selectedArbiters.includes(userAddress)) {
         disputeArray.push(dispute);
       }
-      })
-      
     }
     return disputeArray;
   }
@@ -152,7 +166,7 @@ export class DisputePool {
     let disputeArray = [];
 
     for (let dispute of allDisputes) {
-      if (dispute.state == IsCreated) {
+      if (dispute.state == this._IsCreated) {
         disputeArray.push(dispute);
       }
     }
@@ -212,14 +226,14 @@ export class DisputePool {
   async endVoting(disputeId) {
     const contract = await this._createDisputeSystemContractInstance();
 
-    let txn = await contract.endVoting(disputeId);
+    let txn = await contract.endVoting(disputeId); 
     let response = await txn.wait();
 
     return response;
   }
 
   //Change the state of a dispute
-  //For the move argument, Pass Either 1 or 2 to this function
+  //For the move argument ,Pass Either 1 or 2 to this function
   //1 means move forward and 2 move back ward
   async changeDisputeState(disputeId, move) {
     const contract = await this._createDisputeSystemContractInstance();
@@ -230,24 +244,13 @@ export class DisputePool {
   }
 
   //get Random Values
-  async getRandomValues() {
-     const contract = await this._createRandomizerInstance();
-     let requestId = await contract.requestRandomWords();
-     
-     let response = new Promise((resolve, reject) => {
-      let isReady = false;
-      let results = [];
-
-      while (!isReady){
-        setTimeout(async () => {
-          (isReady, results) = await contract.getRequestStatus(requestId);
-        }, 60000);  
-      } 
-      
-      resolve(results)
-     }).then(async (results) => await results).catch((err) => console.log(err));
-
-    // let response = await txn.wait();
-     return await response;
-  }
+  async getRandomValues() {}
 }
+
+async function runTheTown (){
+    let contactClass = new DisputePool();
+
+   let disputes = await contactClass.getAllDisputes();
+   console.log(disputes[3].selectedArbiters[0][0])
+}
+runTheTown();
