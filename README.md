@@ -8,6 +8,14 @@
 #### Decision NFT Contract Address:
 0xC476BD43d8ae7Ba3784169AcEABd2ad6664b52c1
 
+## Contract Addresses Deployed on Calibration Testnet:
+#### ArbiterWhiteLister Contract Address 
+- 0x85f92f292aF22CE06BBbc76B7DA799955437a82a
+#### DisputeInitiation Contract Address
+- 0x4403eB3321add014Feb7991714ac8D138fE677Bb
+#### Decision NFT Contract Address
+- 0x6d9763d7CB4B642c898dd7B23fAa09609E953C56
+
 ## Relevant Contract Addresses Deployed on Polygon Testnet:
 #### ArbiterWhiteLister Contract Address 
 - 0x106594F1422c75cbE804A623D303E49D52F0b07F
