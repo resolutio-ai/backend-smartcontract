@@ -326,4 +326,11 @@ describe("dispute creation and resolution Main", () => {
       await finalDecisionContract.balanceOf(deployerasSigner.address, 1)
     ).to.be.eq(ethers.BigNumber.from(7));
   });
+
+  it("should change ownership,", async () => {
+   var res =  await disputeContract.owner();
+   console.log(res, "RES");
+
+   
+  })
 });
