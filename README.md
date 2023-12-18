@@ -1,5 +1,8 @@
 # Official Resolutio Smartcontract Project
 
+###Summary
+This is the backend & smart contracts for Dispute Resolution
+
 ### FVM Mainnet Deployed Smart Contract Addresses:
 #### ArbiterWhiteLister Contract Address:
 0x6A0a62FE073AC284fc5A65adD1EfC49C5Cb92eCf
